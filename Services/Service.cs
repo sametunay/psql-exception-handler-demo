@@ -19,10 +19,8 @@ public class Service
         try
         {
             // var category = new CarCategory(1, "SUV");
-            // var car = new Car(1, "honda civic", 1);
-            var existCategory = _operations.Get<CarCategory>(x => x.Id == 1);
-            // _operations.Add(car);
-            _operations.Remove(existCategory);
+            var car = new Car(1, "honda civic", 1);
+            _operations.Add(car);
         }
         catch (Exception ex) { throw ex.Handle(); }
         finally

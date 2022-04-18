@@ -11,18 +11,27 @@ public static class RepositoryExceptionHandlerExtension
         var exceptionType = exception.GetType();
         var innerExceptionType = exception.InnerException?.GetType();
 
-        if (exceptionType.Equals(typeof(DbUpdateException)) && innerExceptionType.Equals(typeof(PostgresException)))
+        if (exceptionType == typeof(DbUpdateException))
         {
-            var psqlException = exception.InnerException as PostgresException;
-            
-            return psqlException.SqlState switch
+            return innerExceptionType switch
             {
-                PostgresErrorCodes.UniqueViolation => new DuplicateValueException("duplicate value exception.", psqlException),
-                PostgresErrorCodes.ForeignKeyViolation => new NotFoundException("x not found.", psqlException),
-                _ => new UnexpectedRepositoryException(psqlException)
+                Type _ when innerExceptionType == typeof(PostgresException) =>  PostgresExceptionHandle(exception?.InnerException as PostgresException),
+                _=> new UnexpectedRepositoryException(exception?.InnerException)
             };
         }
 
         return new UnexpectedRepositoryException(exception);
+    }
+
+    public static RepositoryException PostgresExceptionHandle(PostgresException psqlException)
+    {
+        return psqlException.SqlState switch
+        {
+            PostgresErrorCodes.UniqueViolation => new DuplicateValueException("duplicate value exception.", psqlException),
+            PostgresErrorCodes.ForeignKeyViolation => new InvalidReferenceException("x reference invalid.", psqlException),
+            PostgresErrorCodes.NotNullViolation => new NotNullException("not null message", psqlException),
+            PostgresErrorCodes.NumericValueOutOfRange or PostgresErrorCodes.StringDataRightTruncation => new OutOfRangeException("out of range string or numeric value.", psqlException),
+            _ => new UnexpectedRepositoryException(psqlException)
+        };
     }
 }
